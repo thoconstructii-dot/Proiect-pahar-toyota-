@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pahar Totem Toyota 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Aplicație pe un ecran: vizualizator 3D al fundației (pahar) + panou cu straturi și extras */
+:root{
+  --navy:#14233c; --ink:#0e1828; --orange:#e8792b; --fog:#c9d2de; --line:rgba(201,210,222,.16);
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --body:"Inter",system-ui,-apple-system,Segoe UI,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:#f3f5f8;font-family:var(--body);overflow:hidden}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+header{background:var(--navy);border-bottom:2px solid var(--orange);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-size:24px;letter-spacing:.04em;font-weight:700;white-space:nowrap}
+.brand span{color:var(--orange);font-weight:500;margin-left:6px}
+.proj{font-size:13px;color:var(--fog);line-height:1.35;min-width:0}
+.proj b{color:#fff;font-weight:600}
+.main{display:grid;grid-template-columns:1fr 340px;min-height:0}
+.stage{position:relative;min-width:0;min-height:0;overflow:hidden}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none}
+.lb{position:absolute;transform:translate(-50%,-50%);font:600 11px var(--body);color:#0e1828;background:rgba(255,255,255,.9);border-left:3px solid var(--orange);padding:3px 6px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.dm{position:absolute;transform:translate(-50%,-50%);font:500 11px var(--mono);color:#14233c;background:#ffd9bd;padding:1px 4px;border-radius:2px;white-space:nowrap}
+.views{position:absolute;top:12px;left:max(12px,env(safe-area-inset-left,0px));display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.views button{font:600 12px var(--body);color:#fff;background:rgba(20,35,60,.85);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer}
+.views button[aria-pressed="true"]{border-color:var(--orange);color:var(--orange)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.hint{position:absolute;bottom:10px;left:max(12px,env(safe-area-inset-left,0px));font-size:11px;color:#3b4a5e}
+aside{background:var(--navy);border-left:1px solid var(--line);overflow:auto;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+h2{font-family:var(--display);font-size:26px;font-weight:600;line-height:1.05;margin:0}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);font-weight:600;margin-bottom:6px}
+.layers{display:flex;flex-direction:column;gap:2px}
+.layers label{display:grid;grid-template-columns:18px 14px 1fr;gap:8px;align-items:center;font-size:13px;color:#e9edf2;padding:5px 4px;border-radius:5px;cursor:pointer}
+.layers label:hover{background:rgba(255,255,255,.05)}
+.layers input{accent-color:var(--orange);margin:0}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.3)}
+table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:600;color:var(--fog);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;padding:4px 3px;border-bottom:1px solid var(--line)}
+td{padding:5px 3px;border-bottom:1px solid var(--line);color:#e9edf2}
+td.r,th.r{text-align:right}
+tr.tot td{font-weight:600;color:#fff;border-bottom:0}
+.note{font-size:11px;color:var(--fog);line-height:1.45;border-top:1px solid var(--line);padding-top:12px}
+.tog{display:flex;gap:6px;flex-wrap:wrap}
+.tog button{font:600 12px var(--body);color:#fff;background:transparent;border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+.tog button[aria-pressed="true"]{background:var(--orange);border-color:var(--orange)}
+.now .day{font:500 12px var(--mono);color:var(--orange);letter-spacing:.06em}
+.now h3{font-family:var(--display);font-size:22px;font-weight:600;line-height:1.1;margin:4px 0 6px;text-wrap:balance}
+.now p{margin:0;color:var(--fog);font-size:13px;line-height:1.5}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+ol.steps button{width:100%;text-align:left;display:grid;grid-template-columns:44px 1fr;gap:8px;align-items:center;background:none;border:0;border-radius:6px;padding:6px 8px;color:var(--fog);font:500 13px var(--body);cursor:pointer}
+ol.steps button .d{font:500 11px var(--mono);opacity:.7}
+ol.steps button[aria-current="step"]{background:rgba(232,121,43,.14);color:#fff}
+ol.steps button[aria-current="step"] .d{color:var(--orange);opacity:1}
+ol.steps button.done{color:#e9edf2}
+footer.ctrl{background:var(--navy);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:14px}
+#play{min-width:96px;font:600 12px var(--body);color:#fff;background:var(--orange);border:1px solid var(--orange);border-radius:6px;padding:8px 12px;cursor:pointer}
+.track{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+input[type=range]{width:100%;accent-color:var(--orange)}
+.ticks{display:flex;justify-content:space-between;font:500 10px var(--mono);color:var(--fog)}
+@media (max-width:820px){
+  .ticks span:nth-child(even){visibility:hidden}
+  body{overflow:auto} .app{height:auto;min-height:100%}
+  .main{grid-template-columns:1fr} .stage{height:64vh;min-height:360px}
+  aside{border-left:0;border-top:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">TEOBTI<span>CONSTRUCT</span></div>
+    <div class="proj"><b>Pahar (fundație) Totem Toyota — Toyo București Sud</b><br>Bloc C25/30 1,20 × 2,10 × 0,80 m · Pos.1 9 Ø12 + Pos.2 16 Ø12 · coș 4 × M20 · buc. 2</div>
+  </header>
+  <div class="main">
+    <div class="stage">
+      <canvas id="view" aria-label="Model 3D al fundației totemului cu armătura"></canvas>
+      <div id="labels" aria-hidden="true"></div>
+      <div class="views" role="group" aria-label="Unghi de vedere">
+        <button data-v="iso" aria-pressed="true">Izometric</button>
+        <button data-v="front" aria-pressed="false">Secțiune A–A</button>
+        <button data-v="side" aria-pressed="false">Secțiune B–B</button>
+        <button data-v="top" aria-pressed="false">De sus</button>
+        <button data-v="bolt" aria-pressed="false">Detaliu ancoraj</button>
+      </div>
+      <div class="hint">Trage pentru rotire · scroll / două degete pentru zoom</div>
+    </div>
+    <aside>
+      <div><div class="label">Pahar totem — 2 bucăți</div><h2>Fundație bloc cu coș de ancoraj</h2></div>
+      <div class="now"><div class="day" id="day">ZIUA 13</div><h3 id="ph-title"></h3><p id="ph-desc"></p></div>
+      <div><div class="label">Etape 4D</div><ol class="steps" id="steps"></ol></div>
+      <div>
+        <div class="label">Afișare</div>
+        <div class="tog" role="group" aria-label="Mod afișare">
+          <button id="tLab" aria-pressed="true">Etichete</button>
+          <button id="tDim" aria-pressed="true">Cote</button>
+        </div>
+      </div>
+      <div><div class="label">Straturi</div><div class="layers" id="layers"></div></div>
+      <div>
+        <div class="label">Extras armătură — 1 pahar</div>
+        <table>
+          <thead><tr><th>Poz.</th><th>Ø</th><th class="r">Buc.</th><th class="r">L (m)</th><th class="r">Total m</th><th class="r">kg</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Ø12</td><td class="r">9</td><td class="r">5,60</td><td class="r">50,40</td><td class="r">44,76</td></tr>
+            <tr><td>2</td><td>Ø12</td><td class="r">16</td><td class="r">3,84</td><td class="r">61,44</td><td class="r">54,56</td></tr>
+            <tr class="tot"><td colspan="4">Total 1 pahar</td><td class="r">111,84</td><td class="r">99,31</td></tr>
+            <tr class="tot"><td colspan="4">Total 2 pahare</td><td class="r">223,68</td><td class="r">198,63</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">Pos.1 — etrier închis 200 × 68 cm, pe direcția de 2,10 m, la 13,25 cm (margini 7 cm). Pos.2 — etrier închis 110 × 70 cm, pe direcția de 1,20 m, la 13 cm (margini 7,5 cm). Acoperire cu beton 5 cm. Coș de ancoraj 4 × M20 cl. 8.8, L = 80 cm (≈70 cm în beton), distanțe 22 × 30 cm, filet liber ~10 cm. Tub Ø40 intră prin latura lungă, la mijlocul lungimii, la ~43 cm sub fața fundației, și iese vertical la 20 cm de ax, lângă placă. Placă de bază 300 × 400 × 25 mm S235JR pe mortar fără contracție 2–3 cm. Fața fundației la −0,15 m, talpa la −0,95 m, egalizare C8/10 10 cm. Conform planșei Pro Licht; se verifică și se semnează de proiectant.</div>
+    </aside>
+  </div>
+  <footer class="ctrl">
+    <button id="play" aria-pressed="false">▶ Redă</button>
+    <div class="track"><input id="t" type="range" min="0" max="7" step="1" value="7" aria-label="Etapa de execuție"><div class="ticks" id="ticks"></div></div>
+  </footer>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('view');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdfe5ec);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 1.3));
+const sun = new THREE.DirectionalLight(0xfff3e2, 2.2); sun.position.set(3, 6, 4); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 20 }); sun.shadow.bias = -0.0005; scene.add(sun);
+
+const M = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.75, metalness: 0 }, o));
+const mat = {
+  conc: M(0xb9bec4, { transparent: true, opacity: 0.22, depthWrite: false, roughness: 0.9 }),
+  lean: M(0x9c968c, { roughness: 1 }), soil: M(0x8b6a48, { roughness: 1 }), asph: M(0x3d3f43, { roughness: 1 }),
+  p1: M(0xb5462a, { roughness: 0.5, metalness: 0.4 }), p2: M(0xd9822f, { roughness: 0.5, metalness: 0.4 }),
+  bolt: M(0xc9ced4, { roughness: 0.3, metalness: 0.9 }), plate: M(0x59636f, { roughness: 0.45, metalness: 0.7 }),
+  ipe: M(0x8f9aa6, { roughness: 0.4, metalness: 0.7 }), tube: M(0xf2a33a, { roughness: 0.6 }), zn: M(0xa7b0b8, { roughness: 0.35, metalness: 0.85 }),
+  grout: M(0x7d7a74, { roughness: 1 }), spacer: M(0x444b55, { roughness: 0.8 }), tmpl: M(0x2f6fb0, { roughness: 0.5, metalness: 0.3 })
+};
+const groups = {};
+const G = (k) => { const g = new THREE.Group(); g.name = k; scene.add(g); groups[k] = g; return g; };
+function box(g, m, x0, y0, z0, x1, y1, z1, shadow = true) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), m); b.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  b.castShadow = shadow; b.receiveShadow = true; g.add(b); return b;
+}
+const up = new THREE.Vector3(0, 1, 0);
+function rod(g, m, a, b, r) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A);
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 12), m);
+  c.position.copy(A).add(B).multiplyScalar(0.5); c.quaternion.setFromUnitVectors(up, d.normalize()); c.castShadow = true; g.add(c);
+}
+function poly(g, m, pts, r, closed = true) {
+  const P = closed ? [...pts, pts[0]] : pts;
+  for (let i = 0; i < P.length - 1; i++) rod(g, m, P[i], P[i + 1], r);
+  pts.forEach(p => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), m); s.position.set(...p); g.add(s); });
+}
+
+// ---------- geometrie (m) — ±0,00 = asfalt; fundație X 1,20 · Z 2,10 · Y -0,95…-0,15
+const FX = 1.2, FZ = 2.1, YT = -0.15, YB = -0.95, R12 = 0.007;
+// teren
+const teren = G('teren');
+const PX = 0.70, PZ = 1.15, E = 2.2;
+box(teren, mat.asph, -E, -0.08, -E, -PX, 0, E); box(teren, mat.asph, -PX, -0.08, -E, E, 0, -PZ);
+box(teren, mat.soil, -E, -1.25, -E, -PX, -0.08, -PZ - 0.0, false);
+box(teren, mat.soil, -E, -1.25, -PZ, -PX, -0.08, E, false);
+box(teren, mat.soil, -PX, -1.25, -E, E, -0.08, -PZ, false);
+box(teren, mat.soil, -PX, -1.25, -PZ - 0.0, PX, -1.05, PZ, false);
+// egalizare
+const egal = G('egal'); box(egal, mat.lean, -PX, -1.05, -PZ, PX, -0.95, PZ);
+// beton
+const beton = G('beton');
+const cb = box(beton, mat.conc, -FX / 2, YB, -FZ / 2, FX / 2, YT, FZ / 2, false); cb.renderOrder = 5;
+const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(FX, YT - YB, FZ)), new THREE.LineBasicMaterial({ color: 0x5b6470 }));
+edges.position.set(0, (YT + YB) / 2, 0); beton.add(edges);
+const betonPlin = G('betonPlin');
+box(betonPlin, M(0xb6b9bc, { roughness: 0.95 }), -FX / 2, YB, -FZ / 2, FX / 2, YT, FZ / 2);
+const bpE = edges.clone(); betonPlin.add(bpE);
+// umplutură + asfalt refăcut, cu buzunar în jurul plăcii
+const fin = G('fin');
+const fillM = M(0xc9b99a, { roughness: 1 });
+[[-PX, -PZ, PX, -0.30], [-PX, 0.30, PX, PZ], [-PX, -0.30, -0.25, 0.30], [0.25, -0.30, PX, 0.30]].forEach(([a, b, c, d]) => { box(fin, fillM, a, YT, b, c, -0.08, d); box(fin, mat.asph, a, -0.08, b, c, -0.002, d); });
+// Pos.1 — 9 etrieri 200 x 68 în plan YZ
+const pos1 = G('pos1');
+const p1y0 = -0.89, p1y1 = -0.21, p1z = 1.0;
+for (let i = 0; i < 9; i++) {
+  const x = -0.53 + i * 0.1325;
+  poly(pos1, mat.p1, [[x, p1y0, -p1z], [x, p1y0, p1z], [x, p1y1, p1z], [x, p1y1, -p1z]], R12);
+  rod(pos1, mat.p1, [x, p1y1, -p1z], [x, p1y1 - 0.085, -p1z + 0.085], R12); rod(pos1, mat.p1, [x, p1y1, -p1z], [x, p1y1 - 0.085 + 0.0, -p1z + 0.085], R12);
+  rod(pos1, mat.p1, [x + 0.012, p1y1, -p1z], [x + 0.012, p1y1 - 0.085, -p1z + 0.085], R12);
+}
+// Pos.2 — 16 etrieri 110 x 70 în plan XY
+const pos2 = G('pos2');
+const p2y0 = -0.90, p2y1 = -0.20, p2x = 0.55;
+for (let j = 0; j < 16; j++) {
+  const z = -0.975 + j * 0.13;
+  poly(pos2, mat.p2, [[-p2x, p2y0, z], [p2x, p2y0, z], [p2x, p2y1, z], [-p2x, p2y1, z]], R12);
+  rod(pos2, mat.p2, [-p2x, p2y1, z + 0.012], [-p2x + 0.085, p2y1 - 0.085, z + 0.012], R12);
+}
+// distanțieri
+const dist = G('dist');
+for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) box(dist, mat.spacer, -0.45 + i * 0.45 - 0.02, YB, -0.85 + j * 0.57 - 0.02, -0.45 + i * 0.45 + 0.02, YB + 0.05, -0.85 + j * 0.57 + 0.02);
+// coș de ancoraj 4 x M20
+const cos = G('cos');
+const BX = 0.11, BZ = 0.15, by0 = -0.85, by1 = -0.05;
+[[-BX, -BZ], [BX, -BZ], [BX, BZ], [-BX, BZ]].forEach(([x, z]) => {
+  rod(cos, mat.bolt, [x, by0, z], [x, by1, z], 0.01);
+  [by0 + 0.02, -0.065].forEach(y => { const n = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.016, 6), mat.bolt); n.position.set(x, y, z); cos.add(n); });
+  const n2 = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.017, 0.016, 6), mat.bolt); n2.position.set(x, -0.085, z); cos.add(n2);
+});
+// placă inferioară de ancoraj (ramă) + bare de legătură
+box(cos, mat.tmpl, -BX - 0.03, by0 + 0.03, -BZ - 0.03, BX + 0.03, by0 + 0.04, BZ + 0.03);
+[[-BX, -BZ, BX, -BZ], [BX, -BZ, BX, BZ], [BX, BZ, -BX, BZ], [-BX, BZ, -BX, -BZ]].forEach(([a, b, c, d]) => rod(cos, mat.bolt, [a, -0.45, b], [c, -0.45, d], 0.006));
+// placă de bază + mortar + IPE 200
+const stalp = G('stalp');
+box(stalp, mat.grout, -0.16, YT, -0.21, 0.16, -0.12, 0.21);
+box(stalp, mat.plate, -0.15, -0.12, -0.20, 0.15, -0.095, 0.20);
+const ty = -0.095, th = 0.75;
+box(stalp, mat.ipe, -0.05, ty, -0.1, 0.05, ty + th, -0.0915); box(stalp, mat.ipe, -0.05, ty, 0.0915, 0.05, ty + th, 0.1);
+box(stalp, mat.ipe, -0.0028, ty, -0.0915, 0.0028, ty + th, 0.0915);
+// tub Ø40
+const tub = G('tub');
+poly(tub, mat.tube, [[1.0, -0.58, 0], [-0.20, -0.58, 0], [-0.20, -0.08, 0]], 0.02, false);
+// împământare platbandă 25x4
+const imp = G('imp');
+box(imp, mat.zn, -1.15, -0.87, -0.62, -0.42, -0.845, -0.60);
+box(imp, mat.zn, -0.43, -0.87, -0.62, -0.42, -0.05, -0.60);
+box(imp, mat.zn, -0.43, -0.07, -0.62, -0.14, -0.05, -0.60);
+
+// ---------- straturi UI
+const LAY = [['beton', 'Beton C25/30 (transparent)', '#b9bec4'], ['pos1', 'Pos.1 — 9 Ø12 · 200×68', '#b5462a'], ['pos2', 'Pos.2 — 16 Ø12 · 110×70', '#d9822f'],
+  ['cos', 'Coș ancoraj 4 × M20 8.8', '#c9ced4'], ['stalp', 'Placă 300×400×25 + IPE 200', '#59636f'], ['tub', 'Tub Ø40 alimentare', '#f2a33a'],
+  ['imp', 'Împământare OL-Zn 25×4', '#a7b0b8'], ['dist', 'Distanțieri 5 cm', '#444b55'], ['egal', 'Egalizare C8/10 · 10 cm', '#9c968c'], ['teren', 'Teren și asfalt', '#8b6a48']];
+const lw = document.getElementById('layers');
+LAY.forEach(([k, t, c]) => {
+  const l = document.createElement('label'); const i = document.createElement('input'); i.type = 'checkbox'; i.checked = k !== 'teren'; groups[k].visible = i.checked; i.dataset.k = k;
+  i.addEventListener('change', () => { groups[k].visible = i.checked; });
+  const s = document.createElement('span'); s.className = 'sw'; s.style.background = c; const tx = document.createElement('span'); tx.textContent = t;
+  l.append(i, s, tx); lw.appendChild(l);
+});
+
+// ---------- etichete și cote (HTML proiectat)
+const labelsEl = document.getElementById('labels');
+const marks = [];
+function mark(text, p, cls, layer) { const d = document.createElement('div'); d.className = cls; d.textContent = text; labelsEl.appendChild(d); marks.push({ d, p: new THREE.Vector3(...p), cls, layer }); }
+const dims = G('dims'); const lm = new THREE.LineBasicMaterial({ color: 0xe8792b });
+function dim(a, b, off, text) {
+  const A = new THREE.Vector3(...a).add(new THREE.Vector3(...off)), B = new THREE.Vector3(...b).add(new THREE.Vector3(...off));
+  const pts = [new THREE.Vector3(...a), A, A, B, B, new THREE.Vector3(...b)];
+  dims.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lm));
+  mark(text, A.clone().add(B).multiplyScalar(0.5).toArray(), 'dm', 'dims');
+}
+dim([-0.6, YB, 1.05], [0.6, YB, 1.05], [0, 0, 0.3], '120');
+dim([0.6, YB, -1.05], [0.6, YB, 1.05], [0.3, 0, 0], '210');
+dim([0.6, YB, 1.05], [0.6, YT, 1.05], [0.3, 0, 0.3], '80');
+dim([0.6, YT, 1.05], [0.6, 0, 1.05], [0.3, 0, 0.3], '15');
+dim([0.7, -1.05, 1.15], [0.7, YB, 1.15], [0.2, 0, 0.2], '10');
+dim([-0.53, YB, -1.05], [-0.3975, YB, -1.05], [0, 0, -0.25], '13,25');
+dim([-0.6, YB, -0.975], [-0.6, YB, -0.845], [-0.25, 0, 0], '13');
+dim([-BX, -0.06, -BZ], [BX, -0.06, -BZ], [0, 0.0, -0.32], '22');
+dim([BX, -0.06, -BZ], [BX, -0.06, BZ], [0.35, 0, 0], '30');
+mark('Pos.1 · 9 Ø12 la 13,25 cm · L=5,60 m', [-0.53, -0.21, -0.7], 'lb', 'pos1');
+mark('Pos.2 · 16 Ø12 la 13 cm · L=3,84 m', [0.55, -0.55, 0.85], 'lb', 'pos2');
+mark('4 × M20 cl. 8.8 · L=80 cm', [BX, -0.55, BZ], 'lb', 'cos');
+mark('Placă 300×400×25', [0.15, -0.11, -0.2], 'lb', 'stalp');
+mark('IPE 200', [0, 0.6, 0], 'lb', 'stalp');
+mark('Tub Ø40 — intră prin latura lungă, la mijloc', [0.85, -0.58, 0], 'lb', 'tub');
+mark('Platbandă OL-Zn 25×4', [-0.95, -0.86, -0.61], 'lb', 'imp');
+mark('Beton C25/30 XC2', [-0.6, -0.45, 0.9], 'lb', 'beton');
+mark('Egalizare C8/10 · 10 cm', [-0.55, -1.0, 1.1], 'lb', 'egal');
+let showLab = true, showDim = true;
+const tLab = document.getElementById('tLab'), tDim = document.getElementById('tDim');
+tLab.addEventListener('click', () => { showLab = !showLab; tLab.setAttribute('aria-pressed', showLab); });
+tDim.addEventListener('click', () => { showDim = !showDim; tDim.setAttribute('aria-pressed', showDim); dims.visible = showDim; });
+
+// ---------- cameră
+const cam = new THREE.PerspectiveCamera(34, 1, 0.02, 100);
+const ctl = new OrbitControls(cam, canvas); ctl.enableDamping = true; ctl.minDistance = 0.8; ctl.maxDistance = 14;
+const V = { iso: [2.6, 1.35, 3.0, 0, -0.45, 0], front: [0, -0.5, 4.6, 0, -0.55, 0], side: [4.6, -0.5, 0, 0, -0.55, 0], top: [0.01, 4.4, 0.02, 0, -0.5, 0], bolt: [1.35, 0.45, 1.45, 0, -0.4, 0] };
+let anim = null;
+function go(v, instant) {
+  const t = V[v]; const fp = cam.position.clone(), fq = ctl.target.clone(), tp = new THREE.Vector3(t[0], t[1], t[2]), tq = new THREE.Vector3(t[3], t[4], t[5]);
+  if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { cam.position.copy(tp); ctl.target.copy(tq); return; }
+  const t0 = performance.now(); anim = (now) => { const k = Math.min(1, (now - t0) / 800), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; cam.position.lerpVectors(fp, tp, e); ctl.target.lerpVectors(fq, tq, e); if (k >= 1) anim = null; };
+}
+document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.views button').forEach(x => x.setAttribute('aria-pressed', x === b)); go(b.dataset.v); }));
+function resize() { const r = canvas.parentElement.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); cam.aspect = r.width / Math.max(1, r.height); cam.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(canvas.parentElement); resize();
+const v3 = new THREE.Vector3();
+function placeLabels() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  marks.forEach(m => {
+    const vis = (m.cls === 'dm' ? showDim : showLab) && groups[m.layer].visible;
+    v3.copy(m.p).project(cam);
+    if (!vis || v3.z > 1) { m.d.style.display = 'none'; return; }
+    m.d.style.display = ''; m.d.style.left = ((v3.x + 1) / 2 * w) + 'px'; m.d.style.top = ((1 - v3.y) / 2 * h) + 'px';
+  });
+}
+go('iso', true);
+// ---------- 4D
+const PH = [
+  { d: 'Ziua 1', s: 'Săpătură', t: 'Trasare și săpătură', x: 'Se taie asfaltul și se sapă groapa 1,40 × 2,30 m până la −1,05 m. Fund pe teren natural, fără apă.', g: ['teren'] },
+  { d: 'Ziua 2', s: 'Egalizare', t: 'Beton de egalizare', x: '10 cm beton C8/10 pe toată groapa (−1,05 … −0,95 m), drept și curat.', g: ['teren', 'egal'] },
+  { d: 'Ziua 3', s: 'Pos.2', t: 'Distanțieri + Pos.2', x: '12 distanțieri de 5 cm; 16 etrieri Pos.2 Ø12 110 × 70 la 13 cm, primul la 7,5 cm de capăt.', g: ['teren', 'egal', 'dist', 'pos2'] },
+  { d: 'Ziua 3', s: 'Pos.1', t: 'Pos.1 și legarea carcasei', x: '9 etrieri Pos.1 Ø12 200 × 68 la 13,25 cm, primul la 7 cm de margine; se leagă fiecare intersecție.', g: ['teren', 'egal', 'dist', 'pos2', 'pos1'] },
+  { d: 'Ziua 4', s: 'Ancoraj', t: 'Coș M20, tub Ø40, împământare', x: '4 × M20 L = 80 cm pe șablon, la 22 × 30 cm, filet 10 cm peste beton; tub Ø40 prin latura lungă; platbandă OL-Zn legată de armătură. Cofraj și verificare cote.', g: ['teren', 'egal', 'dist', 'pos2', 'pos1', 'cos', 'tub', 'imp'] },
+  { d: 'Ziua 5', s: 'Turnare', t: 'Turnare beton C25/30', x: 'Beton C25/30 XC2 vibrat, fața la −0,15 m. Buloanele verificate cu șablonul înainte și după turnare.', g: ['teren', 'egal', 'betonPlin', 'cos', 'tub', 'imp'] },
+  { d: 'Z 6–12', s: 'Asfalt', t: 'Întărire, umplutură, asfalt', x: 'Minimum 7 zile de întărire, udat. Umplutură compactată și asfalt refăcut, cu buzunar în jurul buloanelor.', g: ['teren', 'egal', 'betonPlin', 'cos', 'tub', 'imp', 'fin'] },
+  { d: 'Ziua 13', s: 'Stâlp', t: 'Placă de bază și stâlp IPE 200', x: 'Placa 300 × 400 × 25 pe piulițele de reglaj, nivelată; subturnare cu mortar fără contracție; stâlpul totemului montat.', g: ['teren', 'egal', 'betonPlin', 'cos', 'tub', 'imp', 'fin', 'stalp'] }
+];
+const steps = document.getElementById('steps'), range = document.getElementById('t'), ticks = document.getElementById('ticks');
+PH.forEach((p, i) => {
+  const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button';
+  b.innerHTML = '<span class="d">' + p.d + '</span><span>' + p.t + '</span>'; b.addEventListener('click', () => { stop(); setPhase(i); });
+  li.appendChild(b); steps.appendChild(li); const s = document.createElement('span'); s.textContent = p.s; ticks.appendChild(s);
+});
+const ALL = Object.keys(groups).filter(k => k !== 'dims');
+function setPhase(i) {
+  const p = PH[i]; ALL.forEach(k => groups[k].visible = p.g.includes(k));
+  lw.querySelectorAll('input').forEach(inp => { inp.checked = groups[inp.dataset.k].visible; });
+  range.value = i; document.getElementById('day').textContent = p.d.toUpperCase();
+  document.getElementById('ph-title').textContent = p.t; document.getElementById('ph-desc').textContent = p.x;
+  [...steps.querySelectorAll('button')].forEach((b, k) => { b.removeAttribute('aria-current'); if (k === i) b.setAttribute('aria-current', 'step'); b.classList.toggle('done', k < i); });
+}
+range.addEventListener('input', () => { stop(); setPhase(+range.value); });
+let timer = null; const play = document.getElementById('play');
+function stop() { if (timer) { clearInterval(timer); timer = null; play.textContent = '▶ Redă'; play.setAttribute('aria-pressed', 'false'); } }
+play.addEventListener('click', () => {
+  if (timer) { stop(); return; } let i = +range.value >= PH.length - 1 ? 0 : +range.value; setPhase(i);
+  play.textContent = '❚❚ Pauză'; play.setAttribute('aria-pressed', 'true');
+  timer = setInterval(() => { i++; if (i >= PH.length) { stop(); return; } setPhase(i); }, 2200);
+});
+setPhase(4);
+renderer.setAnimationLoop((now) => { if (anim) anim(now); ctl.update(); renderer.render(scene, cam); placeLabels(); });
+// pentru randări statice
+window.phase = (i, v) => { setPhase(i); go(v || 'iso', true); ctl.update(); renderer.render(scene, cam); placeLabels(); };
+window.shot = (v, off = [], opts = {}) => {
+  go(v, true); Object.keys(groups).forEach(k => groups[k].visible = !off.includes(k));
+  showLab = opts.lab !== false; showDim = opts.dim !== false && !off.includes('dims'); dims.visible = showDim;
+  ctl.update(); renderer.render(scene, cam); placeLabels();
+};
+window.ready = true;
+</script>
+
+</body>
+</html>
